@@ -17,25 +17,14 @@ public class Main {
     }
 
     public static void main(String[] args) throws Exception {
-        String input = "e09ce09149d8f14254cc" + "fa3c4b1c6dc325734742";
-        //String decimalInput = "1282312411506662821599389977499878440081124706114";
-        System.out.println("Schöne Heimat: Ausblick #1".length());
+        String input = "e09ce09149d8f14254ccfa3c4b1c6dc325734742";
+        long start = System.currentTimeMillis();
         new Main(input).run();
+        long stop  = System.currentTimeMillis();
+        System.out.println("Took me "+ ((stop-start) / 1000L) + " seconds.");
     }
 
     private void run() {
-        System.out.println(input);
-        System.out.println("length: " + input.length());
-        System.out.println("byte-length: " + input.length() / 2);
-        System.out.println("bit-length: " + 8 * (input.length() / 2));
-        System.out.println();
-        toDecimalByByteLength(1);
-        toDecimalByByteLength(2);
-        toDecimalByByteLength(4);
-        searchForHashes();
-    }
-
-    private void searchForHashes() {
         //  N50 31...35.XXX und E010 20...24.XXX
         DecimalFormat dfThreeDigits = new DecimalFormat("000");
         for (int n1 = 1; n1 <= 5; n1++) {
@@ -48,7 +37,7 @@ public class Main {
                         String hash = getSha1Hash(coord);
                         if (hash.equals(input)) {
                             System.out.println("TADAA!! " + coord);
-                            System.exit(0);
+                            return;
                         }
                     }
                 }
@@ -58,21 +47,6 @@ public class Main {
 
     private String getSha1Hash(String xRepresentation) {
         byte[] digest = md.digest(xRepresentation.getBytes());
-        String result = String.copyValueOf(Hex.encodeHex(digest));
-        return result;
-    }
-
-    private void toDecimalByByteLength(int byteLength) {
-        System.out.println("Input as decimals, grouping " + byteLength + " bytes each, will be " +
-                (input.length() / (2 * byteLength)) + " numbers");
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < input.length(); i = i + 2 * byteLength) {
-            String part = input.substring(i, i + 2 * byteLength);
-            long partAsNumber = Long.parseLong(part, 16);
-            sb.append((char) partAsNumber);
-            System.out.print(partAsNumber + " ");
-        }
-        System.out.println("\n" + sb.toString());
-        System.out.println("\n");
+        return String.copyValueOf(Hex.encodeHex(digest));
     }
 }
