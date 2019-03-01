@@ -28,7 +28,8 @@ public class Main {
         this.input = input;
         md = MessageDigest.getInstance("SHA-1");
         DecimalFormat df = new DecimalFormat("0,000");
-        System.out.println("The pattern '" + pattern + "' contains " + df.format(generator.getNumberOfProbes()) + " probes.");
+        System.out.println(
+                "The pattern '" + pattern + "' contains " + df.format(generator.getNumberOfProbes()) + " probes.");
     }
 
     private void run() {

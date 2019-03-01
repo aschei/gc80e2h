@@ -52,7 +52,8 @@ public class ProbeGenerator {
         return accept(functor, "", elements, new ProgressState());
     }
 
-    private boolean accept(Function<String, Boolean> functor, String prefix, List<GeneratorElement> elements, ProgressState progressState) {
+    private boolean accept(Function<String, Boolean> functor, String prefix, List<GeneratorElement> elements,
+                           ProgressState progressState) {
         if (elements.isEmpty()) {
             progressState.measureProgress();
             return functor.apply(prefix);
