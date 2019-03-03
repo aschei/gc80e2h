@@ -56,7 +56,7 @@ public class Main {
                 .map(this::progress)            // measure progress
                 .filter(this::doHashesMatch)    // filter probes matching the hash code
                 .findFirst()                    // stop on first find
-                .orElse(null);           // or return nothingS
+                .orElse(null);                  // or return nothing
         if (result == null) {
             System.out.println("No result has been found.");
         }
