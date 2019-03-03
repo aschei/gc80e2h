@@ -43,6 +43,13 @@
             <version>1.12</version>
         </dependency>
 
+        <!-- Probe generation -->
+        <dependency>
+            <groupId>com.github.mifmif</groupId>
+            <artifactId>generex</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
         <!-- Test deps -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
