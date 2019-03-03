@@ -39,14 +39,29 @@ public class Main {
     }
 
     static void showUsage() {
+        LOG.info("gc80e2h is a tool to search for a message with a certain hash code.");
+        LOG.info("  Given a regular expression that describes all the messages to be searched");
+        LOG.info("  and the target hash code and a hash function, gc80e2h brute-force-generates all");
+        LOG.info("  messages, and compares their hashes with the given target hash.");
+        LOG.info("");
         LOG.info("Usage: java ...  <pattern> <hash> [hash-algorithm]");
-        LOG.info("   where hash algorithm defaults to SHA-1. Full list see below.");
+        LOG.info("   <pattern> is a Java regexp that describes the message space.");
+        LOG.info("   <hash> is the target hash.");
+        LOG.info("   <hash-algorithm> defaults to SHA-1. Full list of supported algorithms see below.");
+        LOG.info("");
         LOG.info("Example 1: ... \"{}\" {}", "N 50 3[1-5]\\.\\d\\d\\d E 010 2[0-4]\\.\\d\\d\\d",
                 "e09ce09149d8f14254ccfa3c4b1c6dc325734742");
         LOG.info("Example 2: ... \"{}\" {} {}",
                 "N 50 3[1-5]\\.\\d\\d\\d E 010 2[0-4]\\.\\d\\d\\d",
                 "07917342c561b6e11bf651a41f2bd2b543b755bdec76e468c627d1f17e959576",
                 "SHA-2");
+        LOG.info("");
+        LOG.info("Return values: ");
+        LOG.info("  0 a match was found");
+        LOG.info("  1 general, unexpected error");
+        LOG.info("  3 unsupported hash algorithm specified");
+        LOG.info("  4 no match was found");
+        LOG.info("");
         LOG.info("Listing supported hash algorithms: ");
         explainSupportedAlgorithms();
     }
@@ -93,7 +108,7 @@ public class Main {
     }
 
     /**
-     * @return 0 if a pattern was found, 3 if the hash algorithm is invalid 404 if no pattern was found
+     * @return 0 if a pattern was found, 3 if the hash algorithm is invalid, 4 if no pattern was found
      */
     private int run() {
         if (!checkAlgorithm(algorithm)) {
@@ -115,7 +130,7 @@ public class Main {
         LOG.info("Took me {} seconds.", ((stop - start) / 1000L));
         if (result == null) {
             LOG.info("No result has been found.");
-            return 404;
+            return 4;
         }
         return 0;
     }
