@@ -56,7 +56,7 @@ public class ProbeGenerator {
 
     public Stream<String> stream() {
         Spliterator<String> spliterator = new ProbeSpliterator(0L, numberOfProbes - 1);
-        return StreamSupport.stream(spliterator, true);
+        return StreamSupport.stream(spliterator, false); // let caller decide if this should be parallel
     }
 
     private class ProbeSpliterator implements Spliterator<String> {
