@@ -2,12 +2,16 @@ package de.aschei.probegenerator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.Spliterator;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class ProbeGenerator {
 
     private final long numberOfProbes;
     private final List<GeneratorElement> elements = new ArrayList<>();
+    private final List<DecimalDigitGenerator> dynamicElements = new ArrayList<>();
 
     public ProbeGenerator(String pattern) {
         parse(pattern);
@@ -42,53 +46,107 @@ public class ProbeGenerator {
                     throw new RuntimeException("Invalid pattern, unmatched '[': " + pattern);
                 }
                 String innerPattern = currentPattern.substring(1, stopIndex);
-                elements.add(DecimalDigitGenerator.of(innerPattern));
+                DecimalDigitGenerator dynamicElement = DecimalDigitGenerator.of(innerPattern);
+                elements.add(dynamicElement);
+                dynamicElements.add(dynamicElement);
                 currentPattern = currentPattern.substring(stopIndex + 1);
             }
         }
     }
 
-    public boolean accept(Function<String, Boolean> functor) {
-        return accept(functor, "", elements, new ProgressState());
+    public Stream<String> stream() {
+        Spliterator<String> spliterator = new ProbeSpliterator(0L, numberOfProbes - 1);
+        return StreamSupport.stream(spliterator, true);
     }
 
-    private boolean accept(Function<String, Boolean> functor, String prefix, List<GeneratorElement> elements,
-                           ProgressState progressState) {
-        if (elements.isEmpty()) {
-            progressState.measureProgress();
-            return functor.apply(prefix);
+    private class ProbeSpliterator implements Spliterator<String> {
+
+        private long current, to;
+
+        ProbeSpliterator(long from, long to) {
+            this.current = from;
+            this.to = to;
         }
-        boolean result = true;
-        GeneratorElement firstElement = elements.get(0);
-        List<GeneratorElement> subElements = elements.subList(1, elements.size());
-        for (String part : firstElement) {
-            result = accept(functor, prefix + part, subElements, progressState);
-            if (!result) {
-                break;
+
+        @Override
+        public void forEachRemaining(Consumer<? super String> action) {
+            while (current <= to) {
+                action.accept(getProbeFromVector(getVectorForNthProbe(current)));
+                current++;
             }
+        }
+
+        @Override
+        public boolean tryAdvance(Consumer<? super String> action) {
+            if (current <= to) {
+                action.accept(getProbeFromVector(getVectorForNthProbe(current)));
+                current++;
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public Spliterator<String> trySplit() {
+            // Split half between current and "to"
+            if (to - current > 1L) {
+                // current 50, to 52
+                long myNewCurrent = current + (to - current) / 2 + 1; // 50 + (2)/2 +1 = 52
+                long splitFrom = current; // 50
+                long splitTo = myNewCurrent - 1; // 51
+                current = myNewCurrent; // 52 to 52
+                return new ProbeSpliterator(splitFrom, splitTo); //50 to 51
+            }
+            return null;
+        }
+
+        @Override
+        public long estimateSize() {
+            return to - current + 1;
+        }
+
+        @Override
+        public int characteristics() {
+            return Spliterator.DISTINCT | Spliterator.IMMUTABLE | Spliterator.SIZED | Spliterator.SUBSIZED | Spliterator.NONNULL;
+        }
+    }
+
+    int[] getVectorForNthProbe(long n) {
+        /*
+         * Goal is to have a fast function: long -> probe (given as a vector)
+         *
+         * Example: 3 dimensions of sizes 7, 10, 5, resulting in 350 probes
+         * n < 7    -> [n      , 0      , 0    ]
+         * n = 7-13 -> [n-7    , 1      , 0    ]
+         * n < 70   -> [n%7    , n/7    , 0    ]
+         * n = 70   -> [0      , 0      , 1    ]
+         * n        -> [n%7    , n/7%10 , n/70 ]
+         * n= 175   -> [0, 5, 2]
+         */
+        if (n >= numberOfProbes) {
+            throw new RuntimeException("n (" + n + ") should be smaller than " + numberOfProbes);
+        }
+        int dimensionCount = dynamicElements.size();
+        int[] result = new int[dimensionCount];
+        long factorial = 1;
+        for (int i = 0; i < dimensionCount; i++) {
+            long sizeOfDimension = dynamicElements.get(i).size();
+            result[i] = (int) ((n / factorial) % sizeOfDimension);
+            factorial *= sizeOfDimension;
         }
         return result;
     }
 
-    private class ProgressState {
-        long currentProbeNumber = 0;
-        long lastUpdateTime, firstUpdateTime = System.currentTimeMillis();
-
-        void measureProgress() {
-            currentProbeNumber++;
-            long now = System.currentTimeMillis();
-            if (now - lastUpdateTime > 2000) {
-                lastUpdateTime = now;
-                long percentage = (100L * currentProbeNumber / numberOfProbes);
-                long duration = (lastUpdateTime - firstUpdateTime) / 1000L;
-                System.out.print("Testing probes, " + percentage + "% done");
-                if (percentage > 0) {
-                    long remaining = duration * (100L - percentage) / percentage;
-                    System.out.println(", remaining time no longer than " + remaining + " seconds");
-                } else {
-                    System.out.println("...");
-                }
+    String getProbeFromVector(int[] vectorForNthProbe) {
+        int numberOfDimension = 0;
+        StringBuilder sb = new StringBuilder(200);
+        for (GeneratorElement element : elements) {
+            int n = 0;
+            if (element instanceof DecimalDigitGenerator) {
+                n = vectorForNthProbe[numberOfDimension++];
             }
+            sb.append(element.getNthContent(n));
         }
+        return sb.toString();
     }
 }

@@ -1,10 +1,12 @@
 package de.aschei.probegenerator;
 
-import java.util.Iterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class DecimalDigitGenerator implements GeneratorElement {
+/**
+ * Dynamic part of the pattern, maybe be either a decimal digit ("d") or a range ("3,7]). [d] is equivalent to [0,9].
+ */
+class DecimalDigitGenerator implements GeneratorElement {
     private final static Pattern decimalDigitPattern = Pattern.compile("d");
     private final static Pattern decimalDigitRangePattern = Pattern.compile("(\\d),[\\s]*(\\d)");
 
@@ -33,24 +35,12 @@ public class DecimalDigitGenerator implements GeneratorElement {
     }
 
     @Override
-    public Iterator<String> iterator() {
-        return new Iterator<>() {
-            int current = from;
-
-            @Override
-            public boolean hasNext() {
-                return current <= to;
-            }
-
-            @Override
-            public String next() {
-                return Integer.toString(current++);
-            }
-        };
+    public long size() {
+        return to - from + 1;
     }
 
     @Override
-    public long size() {
-        return to - from + 1;
+    public String getNthContent(int n) {
+        return Integer.toString(from + n);
     }
 }
