@@ -43,7 +43,9 @@ public class Main {
         this.input = input;
         md = ThreadLocal.withInitial(wrapException(() -> MessageDigest.getInstance("SHA-1")));
         DecimalFormat df = new DecimalFormat("#,###");
-        LOG.info("The pattern '{}' contains {} probes.", pattern, df.format(generator.getNumberOfProbes()));
+        LOG.info("Checking all probes for pattern '{}'", pattern);
+        LOG.info("comparing SHA1 with {}", input);
+        LOG.info("Pattern contains {} probes", df.format(generator.getNumberOfProbes()));
     }
 
     private <T> Supplier<T> wrapException(Callable<T> o) {
