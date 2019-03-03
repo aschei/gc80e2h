@@ -2,11 +2,18 @@ package de.aschei;
 
 import de.aschei.probegenerator.ProbeGenerator;
 import org.apache.commons.codec.binary.Hex;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
+import java.security.Security;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
@@ -15,37 +22,113 @@ public class Main {
 
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
     public static void main(String[] args) {
-        if (args.length != 2) {
-            LOG.error("Usage: java ...  <pattern> <hash>");
-            LOG.info(
-                    "Example: ... \"{}\" {}", "N 50 3[1-5]\\.\\d\\d\\d E 010 2[0-4]\\.\\d\\d\\d",
-                    "e09ce09149d8f14254ccfa3c4b1c6dc325734742");
+        if (args.length < 2) {
+            showUsage();
             System.exit(1);
         }
         final String pattern = args[0];
         final String input = args[1];
-        long start = System.currentTimeMillis();
-        int returnValue = new Main(pattern, input).run();
-        long stop = System.currentTimeMillis();
-        LOG.info("Took me {} seconds.", ((stop - start) / 1000L));
+        final String algorithm = args.length >= 3 ? args[2] : "SHA-1";
+        int returnValue = new Main(pattern, input, algorithm).run();
         System.exit(returnValue);
     }
 
+    static void showUsage() {
+        LOG.info("Usage: java ...  <pattern> <hash> [hash-algorithm]");
+        LOG.info("   where hash algorithm defaults to SHA-1. Full list see below.");
+        LOG.info("Example 1: ... \"{}\" {}", "N 50 3[1-5]\\.\\d\\d\\d E 010 2[0-4]\\.\\d\\d\\d",
+                "e09ce09149d8f14254ccfa3c4b1c6dc325734742");
+        LOG.info("Example 2: ... \"{}\" {} {}",
+                "N 50 3[1-5]\\.\\d\\d\\d E 010 2[0-4]\\.\\d\\d\\d",
+                "07917342c561b6e11bf651a41f2bd2b543b755bdec76e468c627d1f17e959576",
+                "SHA-2");
+        LOG.info("Listing supported hash algorithms: ");
+        explainSupportedAlgorithms();
+    }
 
-    private ProbeGenerator generator;
-    private String input;
+    private static void explainSupportedAlgorithms() {
+        Provider[] providers = Security.getProviders();
+        for (Provider provider : providers) {
+            explainHashAlgorithms(provider);
+        }
+    }
+
+    private static void explainHashAlgorithms(Provider provider) {
+        String type = MessageDigest.class.getSimpleName();
+
+        List<Provider.Service> algorithms = new ArrayList<>();
+
+        Set<Provider.Service> services = provider.getServices();
+        for (Provider.Service service : services) {
+            if (service.getType().equalsIgnoreCase(type)) {
+                algorithms.add(service);
+            }
+        }
+
+        if (!algorithms.isEmpty()) {
+            LOG.info(" --- Provider {}, version {} ---", provider.getName(), provider.getVersionStr());
+            for (Provider.Service service : algorithms) {
+                LOG.info("  Name: \"{}\"", service.getAlgorithm());
+            }
+        }
+    }
+
+    private final ProbeGenerator generator;
+    private final String pattern;
+    private final String input;
+    private final String algorithm;
 
     private ThreadLocal<MessageDigest> md;
 
-    private Main(String pattern, String input) {
+    private Main(String pattern, String input, final String algo) {
         this.generator = new ProbeGenerator(pattern);
+        this.pattern = pattern;
         this.input = input;
-        md = ThreadLocal.withInitial(wrapException(() -> MessageDigest.getInstance("SHA-1")));
+        this.algorithm = algo;
+    }
+
+    /**
+     * @return 0 if a pattern was found, 3 if the hash algorithm is invalid 404 if no pattern was found
+     */
+    private int run() {
+        if (!checkAlgorithm(algorithm)) {
+            return 3;
+        }
+        md = ThreadLocal.withInitial(wrapException(() -> MessageDigest.getInstance(algorithm)));
         DecimalFormat df = new DecimalFormat("#,###");
         LOG.info("Checking all probes for pattern '{}'", pattern);
-        LOG.info("comparing SHA1 with {}", input);
+        LOG.info("comparing {} with {}", algorithm, input);
         LOG.info("Pattern contains {} probes", df.format(generator.getNumberOfProbes()));
+        long start = System.currentTimeMillis();
+        String result = generator.stream()      // stream the probes
+                .parallel()                     // parallelize the stream
+                .map(this::progress)            // measure progress
+                .filter(this::doHashesMatch)    // filter probes matching the hash code
+                .findFirst()                    // stop on first find
+                .orElse(null);                  // or return nothing
+        long stop = System.currentTimeMillis();
+        LOG.info("Took me {} seconds.", ((stop - start) / 1000L));
+        if (result == null) {
+            LOG.info("No result has been found.");
+            return 404;
+        }
+        return 0;
+    }
+
+    private boolean checkAlgorithm(String algorithm) {
+        try {
+            MessageDigest.getInstance(algorithm);
+            return true;
+        } catch (NoSuchAlgorithmException e) {
+            LOG.error("The hash-algorithm '{}' is not supported", algorithm);
+            showUsage();
+            return false;
+        }
     }
 
     private <T> Supplier<T> wrapException(Callable<T> o) {
@@ -60,23 +143,6 @@ public class Main {
                 }
             }
         };
-    }
-
-    /**
-     * @return 0 if a pattern was found, 404 otherwise
-     */
-    private int run() {
-        String result = generator.stream()      // stream the probes
-                .parallel()                     // parallelize the stream
-                .map(this::progress)            // measure progress
-                .filter(this::doHashesMatch)    // filter probes matching the hash code
-                .findFirst()                    // stop on first find
-                .orElse(null);                  // or return nothing
-        if (result == null) {
-            LOG.info("No result has been found.");
-            return 404;
-        }
-        return 0;
     }
 
     private AtomicLong currentProbeNumber = new AtomicLong(0);

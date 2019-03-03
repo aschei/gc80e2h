@@ -50,6 +50,13 @@
             <version>1.0.2</version>
         </dependency>
 
+        <!-- Bouncycastle for more message digest algorithms -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15on</artifactId>
+            <version>1.61</version>
+        </dependency>
+
         <!-- Logger -->
         <dependency>
             <groupId>org.slf4j</groupId>
