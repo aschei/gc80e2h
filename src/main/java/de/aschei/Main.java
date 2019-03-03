@@ -16,12 +16,20 @@ public class Main {
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) {
-        String input = "e09ce09149d8f14254ccfa3c4b1c6dc325734742";
-        String pattern = "N 50 3[1-5]\\.\\d\\d\\d E 010 2[0-4]\\.\\d\\d\\d";
+        if (args.length != 2) {
+            LOG.error("Usage: java ...  <pattern> <hash>");
+            LOG.info(
+                    "Example: ... \"{}\" {}", "N 50 3[1-5]\\.\\d\\d\\d E 010 2[0-4]\\.\\d\\d\\d",
+                    "e09ce09149d8f14254ccfa3c4b1c6dc325734742");
+            System.exit(1);
+        }
+        final String pattern = args[0];
+        final String input = args[1];
         long start = System.currentTimeMillis();
-        new Main(pattern, input).run();
+        int returnValue = new Main(pattern, input).run();
         long stop = System.currentTimeMillis();
         LOG.info("Took me {} seconds.", ((stop - start) / 1000L));
+        System.exit(returnValue);
     }
 
 
@@ -34,8 +42,10 @@ public class Main {
         this.generator = new ProbeGenerator(pattern);
         this.input = input;
         md = ThreadLocal.withInitial(wrapException(() -> MessageDigest.getInstance("SHA-1")));
-        DecimalFormat df = new DecimalFormat("0,000");
-        LOG.info("The pattern '{}' contains {} probes.", pattern, df.format(generator.getNumberOfProbes()));
+        DecimalFormat df = new DecimalFormat("#,###");
+        LOG.info("Checking all probes for pattern '{}'", pattern);
+        LOG.info("comparing SHA1 with {}", input);
+        LOG.info("Pattern contains {} probes", df.format(generator.getNumberOfProbes()));
     }
 
     private <T> Supplier<T> wrapException(Callable<T> o) {
@@ -52,7 +62,10 @@ public class Main {
         };
     }
 
-    private void run() {
+    /**
+     * @return 0 if a pattern was found, 404 otherwise
+     */
+    private int run() {
         String result = generator.stream()      // stream the probes
                 .parallel()                     // parallelize the stream
                 .map(this::progress)            // measure progress
@@ -61,7 +74,9 @@ public class Main {
                 .orElse(null);                  // or return nothing
         if (result == null) {
             LOG.info("No result has been found.");
+            return 404;
         }
+        return 0;
     }
 
     private AtomicLong currentProbeNumber = new AtomicLong(0);
