@@ -1,7 +1,8 @@
 package de.aschei.probegenerator;
 
-import java.util.Iterator;
-
+/**
+ * Static part of the pattern
+ */
 class StaticElement implements GeneratorElement {
 
     static GeneratorElement of(String content) {
@@ -15,21 +16,8 @@ class StaticElement implements GeneratorElement {
     }
 
     @Override
-    public Iterator<String> iterator() {
-        return new Iterator<>() {
-            boolean hasNext = true;
-
-            @Override
-            public boolean hasNext() {
-                return hasNext;
-            }
-
-            @Override
-            public String next() {
-                hasNext = false;
-                return content;
-            }
-        };
+    public String getNthContent(int n) {
+        return content;
     }
 
     @Override
