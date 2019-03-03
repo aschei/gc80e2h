@@ -13,8 +13,7 @@ public class Main {
 
     public static void main(String[] args) {
         String input = "e09ce09149d8f14254ccfa3c4b1c6dc325734742";
-        //String pattern = "N 5[d] 3[1,5].[d][d][d] E 010 2[0,4].[d][d][d]";
-        String pattern = "N 50 3[1,5].[d][d][d] E 010 2[0,4].[d][d][d]";
+        String pattern = "N 50 3[1-5]\\.\\d\\d\\d E 010 2[0-4]\\.\\d\\d\\d";
         long start = System.currentTimeMillis();
         new Main(pattern, input).run();
         long stop = System.currentTimeMillis();
