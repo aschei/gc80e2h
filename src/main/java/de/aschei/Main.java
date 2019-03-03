@@ -2,6 +2,7 @@ package de.aschei;
 
 import de.aschei.probegenerator.ProbeGenerator;
 import org.apache.commons.codec.binary.Hex;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +22,10 @@ public class Main {
 
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
     public static void main(String[] args) {
         if (args.length < 2) {
             showUsage();
@@ -33,7 +38,7 @@ public class Main {
         System.exit(returnValue);
     }
 
-    private static void showUsage() {
+    static void showUsage() {
         LOG.info("Usage: java ...  <pattern> <hash> [hash-algorithm]");
         LOG.info("   where hash algorithm defaults to SHA-1. Full list see below.");
         LOG.info("Example 1: ... \"{}\" {}", "N 50 3[1-5]\\.\\d\\d\\d E 010 2[0-4]\\.\\d\\d\\d",
