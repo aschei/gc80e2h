@@ -2,6 +2,8 @@ package de.aschei;
 
 import de.aschei.probegenerator.ProbeGenerator;
 import org.apache.commons.codec.binary.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.MessageDigest;
 import java.text.DecimalFormat;
@@ -11,13 +13,15 @@ import java.util.function.Supplier;
 
 public class Main {
 
+    private static final Logger LOG = LoggerFactory.getLogger(Main.class);
+
     public static void main(String[] args) {
         String input = "e09ce09149d8f14254ccfa3c4b1c6dc325734742";
         String pattern = "N 50 3[1-5]\\.\\d\\d\\d E 010 2[0-4]\\.\\d\\d\\d";
         long start = System.currentTimeMillis();
         new Main(pattern, input).run();
         long stop = System.currentTimeMillis();
-        System.out.println("Took me " + ((stop - start) / 1000L) + " seconds.");
+        LOG.info("Took me {} seconds.", ((stop - start) / 1000L));
     }
 
 
@@ -31,8 +35,7 @@ public class Main {
         this.input = input;
         md = ThreadLocal.withInitial(wrapException(() -> MessageDigest.getInstance("SHA-1")));
         DecimalFormat df = new DecimalFormat("0,000");
-        System.out.println(
-                "The pattern '" + pattern + "' contains " + df.format(generator.getNumberOfProbes()) + " probes.");
+        LOG.info("The pattern '{}' contains {} probes.", pattern, df.format(generator.getNumberOfProbes()));
     }
 
     private <T> Supplier<T> wrapException(Callable<T> o) {
@@ -57,7 +60,7 @@ public class Main {
                 .findFirst()                    // stop on first find
                 .orElse(null);                  // or return nothing
         if (result == null) {
-            System.out.println("No result has been found.");
+            LOG.info("No result has been found.");
         }
     }
 
@@ -73,12 +76,12 @@ public class Main {
                     lastUpdateTime = now;
                     long percentage = (100L * currentProbeNumber.get() / generator.getNumberOfProbes());
                     long duration = (lastUpdateTime - firstUpdateTime) / 1000L;
-                    System.out.print("Testing probes, " + percentage + "% done");
                     if (percentage > 0) {
                         long remaining = duration * (100L - percentage) / percentage;
-                        System.out.println(", remaining time no longer than " + remaining + " seconds");
+                        LOG.info("Testing probes, {}% done, remaining time no longer than {} seconds", percentage,
+                                remaining);
                     } else {
-                        System.out.println("...");
+                        LOG.info("Testing probes, {}% done, ...", percentage);
                     }
                 }
             }
@@ -89,7 +92,9 @@ public class Main {
     private boolean doHashesMatch(String probe) {
         String hash = getSha1Hash(probe);
         if (hash.equals(input)) {
-            System.out.println("\nMatch: " + probe);
+            LOG.info("******");
+            LOG.info("Match: " + probe);
+            LOG.info("******");
             return true;
         }
         return false;
