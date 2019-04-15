@@ -186,7 +186,7 @@ public class Main {
     }
 
     private boolean doHashesMatch(String probe) {
-        String hash = getSha1Hash(probe);
+        String hash = getHash(probe);
         if (hash.equals(input)) {
             LOG.info("******");
             LOG.info("Match: " + probe);
@@ -196,7 +196,7 @@ public class Main {
         return false;
     }
 
-    private String getSha1Hash(String xRepresentation) {
+    private String getHash(String xRepresentation) {
         byte[] digest = md.get().digest(xRepresentation.getBytes());
         return String.copyValueOf(Hex.encodeHex(digest));
     }
